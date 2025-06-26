@@ -33,6 +33,7 @@ pacman -Sc --noconfirm
 
 # More aggressive cache cleaning (remove ALL cached packages)
 # Uncomment if you want to remove all cached packages (not recommended)
+# echo ""
 # echo "Clearing ALL pacman package cache..."
 # pacman -Scc --noconfirm
 
