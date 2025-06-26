@@ -39,21 +39,13 @@ arch-cleaner
 
 ### Standard Operations:
 
-- Updates all packages (pacman -Syu)
+- Updates all packages (pacman -Syyu)
 - Removes orphaned packages
-- Cleans package cache (keeping latest versions)
+- Cleans package cache (pacman -Scc)
 - Removes unused packages
 - Cleans systemd journal logs (keeping last 50MB)
 - Removes temporary files
 - Cleans user cache directories
-
-
-### Optional Operations (uncomment to enable):
-
-- Aggressive system update (pacman -Syyu)
-- Complete package cache cleaning (pacman -Scc)
-- Cleaning of unused config files (use with caution)
-
 
  ## Safety Notes
 
