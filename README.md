@@ -17,20 +17,23 @@ A bash script to perform routine maintenance and cleanup tasks on Arch Linux sys
 - Bash shell
 - Root privileges
 
-## Usage
+## Installation (Linux)
+```bash
+git clone https://github.com/antonio-foti/arch-cleaner.git
+cd arch-cleaner
+chmod +x arch-cleaner
+sudo cp arch-clenear /usr/local/bin/
+```
 
-1. Download the script:
-   ```bash
-   git clone https://github.com/antonio-foti/arch-cleaner.git
-   ```
-2. Make the script executable:
-   ```bash
-    chmod +x clean.sh
-   ```
-3. Run the script as root:
-   ```bash
-    sudo ./clean.sh
-   ```
+## Uninstallation (Linux)
+```bash
+sudo rm /usr/local/bin/arch-cleaner
+```
+
+## Usage
+```bash
+arch-cleaner
+```
    
 ## What the Script Does
 
