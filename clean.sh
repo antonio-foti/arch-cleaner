@@ -1,0 +1,72 @@
+#!/bin/bash
+
+# Clean Arch Linux system
+
+# Check if script is run as root
+if [ "$(id -u)" -ne 0 ]; then
+    echo "Please run as root or with sudo."
+    exit 1
+fi
+
+echo "Starting system cleanup..."
+
+# Update package databases and upgrade all packages (standard)
+echo ""
+echo "Updating system (standard)..."
+pacman -Syu --noconfirm
+
+# More aggressive update (force refresh of all package databases)
+# Uncomment if you want to force refresh of all package databases (recommended)
+# echo ""
+# echo "Updating system (aggressive)..."
+# pacman -Syyu --noconfirm
+
+# Remove orphaned packages
+echo ""
+echo "Removing orphaned packages..."
+pacman -Qtdq | pacman -Rns - || echo "No orphaned packages found."
+
+# Clear pacman cache (keep only the latest versions)
+echo ""
+echo "Clearing pacman package cache..."
+pacman -Sc --noconfirm
+
+# More aggressive cache cleaning (remove ALL cached packages)
+# Uncomment if you want to remove all cached packages (not recommended)
+# echo "Clearing ALL pacman package cache..."
+# pacman -Scc --noconfirm
+
+# Remove unused packages (optional)
+echo ""
+echo "Removing unused packages..."
+pacman -Qdqtt | pacman -Rns - || echo "No unused packages found."
+
+# Clean journal logs (keep last 50MB)
+echo ""
+echo "Cleaning systemd journal logs..."
+journalctl --vacuum-size=50M
+
+# Remove temporary files
+echo ""
+echo "Removing temporary files..."
+rm -rf /tmp/* /var/tmp/*
+
+# Clean cache in home directories
+echo ""
+echo "Cleaning user cache..."
+for userdir in /home/*; do
+    user=$(basename "$userdir")
+    if [ -d "$userdir/.cache" ]; then
+        echo "Cleaning cache for user $user"
+        rm -rf "$userdir/.cache/"*
+    fi
+done
+
+# Optional: Clean old config files (be careful with this)
+# echo ""
+# echo "Cleaning unused config files..."
+# pacman -Qqn | pacman -R - --nosave - 2>/dev/null || echo "No config files to clean."
+
+echo ""
+echo "Cleanup complete!"
+
