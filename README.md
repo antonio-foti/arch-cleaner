@@ -6,7 +6,7 @@ A bash script to perform routine maintenance and cleanup tasks on Arch Linux sys
 
 ## Features
 
-- System updates (standard and aggressive options)
+- System updates
 - Removal of orphaned packages
 - Pacman cache cleaning
 - Journal log cleaning
