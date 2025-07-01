@@ -34,7 +34,7 @@ sudo rm /usr/local/bin/arch-cleaner
 
 ## Usage
 ```bash
-arch-cleaner
+sudo arch-cleaner
 ```
    
 ## What the Script Does
@@ -54,7 +54,7 @@ arch-cleaner
 1. The script requires root privileges and should be used with care
 2. Always review the script before running
 3. Consider backing up important data before system maintenance
-4. Some operations (particularly the optional ones) are potentially destructive
+4. Some operations are potentially destructive
 
 
 ## Contribution
