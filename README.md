@@ -6,18 +6,21 @@ A bash script to perform routine maintenance and cleanup tasks on Arch Linux sys
 
 ## Features
 
-- System updates
-- Removal of orphaned packages
-- Pacman cache cleaning
+- System updates (standard and aggressive options)
+- Removal of orphaned & unused packages (with configurable aggressiveness)
+- Pacman cache cleaning (configurable thoroughness)
 - Journal log cleaning
-- Temporary file removal
-- User cache cleaning
+- Temporary file removal (conditional on mode)
+- User cache cleaning (configurable thoroughness)
+- Optional trash emptying
+- Optional post-cleanup reboot
 
 ## Requirements
 
 - Arch Linux or Arch-based distribution
 - Bash shell
 - Root privileges
+- Systemd (for journal log cleaning)
 
 ## Installation
 ```bash
@@ -33,35 +36,85 @@ sudo rm /usr/local/bin/arch-cleaner
 ```
 
 ## Usage
+
 ```bash
 sudo arch-cleaner
 ```
+```bash
+sudo arch-cleaner [OPTIONS]
+```
    
+### Options:
+
+- -t Empty trash for all users
+- -r Reboot after cleanup
+- -a Aggressive mode (force refresh databases, complete cache removal)
+
+
+### Examples:
+
+- Standard cleanup: sudo arch-cleaner
+- Cleanup with trash emptying: sudo arch-cleaner -t
+- Aggressive system refresh: sudo arch-cleaner -a
+- Full cleanup with reboot: sudo arch-cleaner -tra
+
+
 ## What the Script Does
 
 ### Standard Operations:
 
-- Updates all packages (pacman -Syyu)
-- Removes orphaned packages
-- Cleans package cache (pacman -Scc)
+- Updates all packages (pacman -Syu)
+- Removes orphaned packages (with confirmation)
+- Cleans package cache (pacman -Sc)
 - Removes unused packages
 - Cleans systemd journal logs (keeping last 50MB)
-- Removes temporary files
-- Cleans user cache directories
+- Removes temporary files (only during reboot)
+- Cleans user cache directories (preserves directory structure)
 
- ## Safety Notes
 
-1. The script requires root privileges and should be used with care
-2. Always review the script before running
-3. Consider backing up important data before system maintenance
-4. Some operations are potentially destructive
+### Aggressive Mode (-a):
+
+- Forces database refresh (pacman -Syyu)
+- Removes ALL cached packages (pacman -Scc)
+- More aggressive orphaned package removal
+- More aggressive unused package removal
+- Deletes entire .cache directories
+- Always removes temporary files (regardless of reboot status)
+
+
+### Optional Operations:
+
+- Trash emptying (-t flag) - removes files from all user trash directories
+- System reboot (-r flag) - reboots after completion
+
+
+## Safety Notes
+
+- The script requires root privileges and should be used with care
+- Always review the script before running
+- Consider backing up important data before system maintenance
+- Aggressive mode (-a) performs potentially destructive operations:
+   - Forces complete database refresh (uses more bandwidth)
+   - Completely clears package cache (requires redownloading all future packages)
+   - Forcefully removes unused packages without confirmation
+   - Removes entire cache directories rather than just contents
 
 
 ## Contribution
 
-Contributions are welcome! Please open an issue or submit a pull request for any enhancements or bug fixes.
+Contributions are welcome! Please:
+
+- Open an issue to discuss proposed changes
+- Submit pull requests with clear descriptions
+- Maintain consistent coding style
+- Update documentation (README.md) for new features
+
 
 ## License
 
 MIT License - Free to use and modify
+
 Created by Antonio Foti
+
+
+Note: The script is provided as-is with no warranties. Use at your own risk.
