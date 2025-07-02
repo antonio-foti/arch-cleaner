@@ -38,9 +38,6 @@ sudo rm /usr/local/bin/arch-cleaner
 ## Usage
 
 ```bash
-sudo arch-cleaner
-```
-```bash
 sudo arch-cleaner [OPTIONS]
 ```
    
