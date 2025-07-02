@@ -61,9 +61,8 @@ sudo arch-cleaner [OPTIONS]
 ### Standard Operations:
 
 - Updates all packages (pacman -Syu)
-- Removes orphaned packages (with confirmation)
+- Removes orphaned & unused packages (with confirmation)
 - Cleans package cache (pacman -Sc)
-- Removes unused packages
 - Cleans systemd journal logs (keeping last 50MB)
 - Removes temporary files (only during reboot)
 - Cleans user cache directories (preserves directory structure)
@@ -73,8 +72,7 @@ sudo arch-cleaner [OPTIONS]
 
 - Forces database refresh (pacman -Syyu)
 - Removes ALL cached packages (pacman -Scc)
-- More aggressive orphaned package removal
-- More aggressive unused package removal
+- More aggressive orphaned & unused package removal
 - Deletes entire .cache directories
 - Always removes temporary files (regardless of reboot status)
 
@@ -90,6 +88,7 @@ sudo arch-cleaner [OPTIONS]
 - The script requires root privileges and should be used with care
 - Always review the script before running
 - Consider backing up important data before system maintenance
+- The script is provided as-is with no warranties. Use at your own risk.
 - Aggressive mode (-a) performs potentially destructive operations:
    - Forces complete database refresh (uses more bandwidth)
    - Completely clears package cache (requires redownloading all future packages)
@@ -106,12 +105,8 @@ Contributions are welcome! Please:
 - Maintain consistent coding style
 - Update documentation (README.md) for new features
 
-
 ## License
 
 MIT License - Free to use and modify
 
 Created by Antonio Foti
-
-
-Note: The script is provided as-is with no warranties. Use at your own risk.
