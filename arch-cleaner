@@ -58,11 +58,17 @@ fi
 
 # Remove unused packages (optional packages no longer required by any installed package)
 echo -e "\nRemoving unused packages..."
-unused=$(pacman -Qdqtt 2>/dev/null || true)
-if [[ -n "$unused" ]]; then
-    echo "$unused" | pacman -Rns --noconfirm -
+if [ $AGGRESSIVE -eq 1 ]; then
+    # Aggressive: remove all unused packages unconditionally
+    pacman -Rns --noconfirm $(pacman -Qdttq 2>/dev/null) 2>/dev/null || echo "No unused packages found."
 else
-    echo "No unused packages found."
+    # Normal: confirm list before removal
+    unused=$(pacman -Qdqtt 2>/dev/null || true)
+    if [[ -n "$unused" ]]; then
+        echo "$unused" | pacman -Rns --noconfirm -
+    else
+        echo "No unused packages found."
+    fi
 fi
 
 # Clean journal logs (keep last 50MB)
