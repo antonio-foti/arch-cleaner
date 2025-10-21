@@ -2,7 +2,7 @@
 
 A bash script to perform routine maintenance and cleanup tasks on Arch Linux systems.
 
-![usage](./usasge.gif)
+![usage](./usage.gif)
 
 ## Features
 
