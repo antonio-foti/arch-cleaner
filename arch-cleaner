@@ -1,127 +1,159 @@
 #!/bin/bash
+# ┌──────────────────────────────────────────────┐
+# │                 Arch-Cleaner                 │
+# │                                              │
+# │  A minimal, safe, and interactive cleanup    │
+# │  tool for Arch-based systems.                │
+# └──────────────────────────────────────────────┘
 
-# Clean Arch Linux system
 set -euo pipefail
 
-# Check if script is run as root
-if [ "$(id -u)" -ne 0 ]; then
-    echo "Please run as root or with sudo." >&2
-    exit 1
-fi
+# ──────────────── ASCII LOGO ────────────────
+cat << "EOF"
 
-# Parse arguments
+   _____                .__                _________ .__                                     
+  /  _  \_______   ____ |  |__             \_   ___ \|  |   ____ _____    ____   ___________ 
+ /  /_\  \_  __ \_/ ___\|  |  \    ______  /    \  \/|  | _/ __ \\__  \  /    \_/ __ \_  __ \
+/    |    \  | \/\  \___|   Y  \  /_____/  \     \___|  |_\  ___/ / __ \|   |  \  ___/|  | \/
+\____|__  /__|    \___  >___|  /            \______  /____/\___  >____  /___|  /\___  >__|   
+        \/            \/     \/                    \/          \/     \/     \/     \/       
+
+EOF
+
+# ──────────────── HELPERS ────────────────
+
+# Exit if not root
+[ "$(id -u)" -eq 0 ] || { echo "Please run as root (use sudo)." >&2; exit 1; }
+
+# Safe pacman query wrapper (avoids errors if empty)
+safe_pacman_query() {
+    pacman "$@" 2>/dev/null || true
+}
+
+# ──────────────── FLAGS & ARGS ────────────────
+
 CLEAN_TRASH=0
 REBOOT=0
 AGGRESSIVE=0
 
-while getopts ":tra" opt; do
-    case $opt in
-        t) CLEAN_TRASH=1 ;;
-        r) REBOOT=1 ;;
-        a) AGGRESSIVE=1 ;;
-        \?) echo "Invalid option: -$OPTARG" >&2; exit 1 ;;
-    esac
-done
-
-echo "Starting system cleanup..."
-
-# Update package databases and upgrade all packages 
-echo -e "\nUpdating system ..."
-if [ $AGGRESSIVE -eq 1 ]; then
-    pacman -Syyu --noconfirm  # Force refresh databases
+# If args provided, parse them (non-interactive mode)
+if [[ $# -gt 0 ]]; then
+    while getopts ":tra" opt; do
+        case $opt in
+            t) CLEAN_TRASH=1 ;;
+            r) REBOOT=1 ;;
+            a) AGGRESSIVE=1 ;;
+            \?) echo "Invalid option: -$OPTARG" >&2; exit 1 ;;
+        esac
+    done
 else
-    pacman -Syu --noconfirm    # Normal update
+    # ──────────────── INTERACTIVE MENU ────────────────
+    echo "Interactive Cleanup Mode"
+    echo "Select options (press Enter to skip):"
+
+    read -rp "Empty Trash for all users? (y/N): " -n 1 -r
+    echo
+    [[ $REPLY =~ ^[Yy]$ ]] && CLEAN_TRASH=1
+
+    read -rp "Reboot after cleanup? (y/N): " -n 1 -r
+    echo
+    [[ $REPLY =~ ^[Yy]$ ]] && REBOOT=1
+
+    read -rp "Aggressive mode? (y/N): " -n 1 -r
+    echo
+    [[ $REPLY =~ ^[Yy]$ ]] && AGGRESSIVE=1
 fi
 
-# Remove orphaned packages
+# ──────────────── MAIN CLEANUP LOGIC ────────────────
+
+echo -e "\nStarting system cleanup...\n"
+
+# 1. Update system
+echo "Updating system..."
+if [[ $AGGRESSIVE -eq 1 ]]; then
+    pacman -Syyu --noconfirm  # Force refresh
+else
+    pacman -Syu --noconfirm   # Normal update
+fi
+
+# 2. Remove orphaned packages
 echo -e "\nRemoving orphaned packages..."
-if [ $AGGRESSIVE -eq 1 ]; then
-    # Aggressive: remove all orphaned packages unconditionally
-    pacman -Rns --noconfirm $(pacman -Qtdq 2>/dev/null) 2>/dev/null || echo "No orphaned packages found."
+orphaned=$(safe_pacman_query -Qtdq)
+if [[ -n "$orphaned" ]]; then
+    echo "$orphaned" | pacman -Rns --noconfirm -
 else
-    # Normal: confirm list before removal
-    orphaned=$(pacman -Qtdq 2>/dev/null || true)
-    if [[ -n "$orphaned" ]]; then
-        echo "$orphaned" | pacman -Rns --noconfirm -
-    else
-        echo "No orphaned packages found."
-    fi
+    echo "No orphaned packages."
 fi
 
-# Clear pacman cache
-echo -e "\nClearing pacman package cache..."
-if [ $AGGRESSIVE -eq 1 ]; then
-    pacman -Scc --noconfirm  # Remove all cached packages
+# 3. Clear pacman cache
+echo -e "\nClearing pacman cache..."
+if [[ $AGGRESSIVE -eq 1 ]]; then
+    pacman -Scc --noconfirm  # Full wipe
 else
-    pacman -Sc --noconfirm   # Remove uninstalled packages from cache
+    pacman -Sc --noconfirm   # Keep installed
 fi
 
-# Remove unused packages (optional packages no longer required by any installed package)
+# 4. Remove unused packages (dangling dependencies)
 echo -e "\nRemoving unused packages..."
-if [ $AGGRESSIVE -eq 1 ]; then
-    # Aggressive: remove all unused packages unconditionally
-    pacman -Rns --noconfirm $(pacman -Qdttq 2>/dev/null) 2>/dev/null || echo "No unused packages found."
+unused=$(safe_pacman_query -Qdttq)
+if [[ -n "$unused" ]]; then
+    echo "$unused" | pacman -Rns --noconfirm -
 else
-    # Normal: confirm list before removal
-    unused=$(pacman -Qdqtt 2>/dev/null || true)
-    if [[ -n "$unused" ]]; then
-        echo "$unused" | pacman -Rns --noconfirm -
-    else
-        echo "No unused packages found."
-    fi
+    echo "No unused packages."
 fi
 
-# Clean journal logs (keep last 50MB)
-echo -e "\nCleaning systemd journal logs..."
+# 5. Clean journal logs (keep last 50MB)
+echo -e "\nCleaning journal logs..."
 journalctl --vacuum-size=50M
 
-# Remove temporary files only if rebooting or in aggressive mode
-if [ $REBOOT -eq 1 ] || [ $AGGRESSIVE -eq 1 ]; then
+# 6. Remove temp files (only if rebooting or aggressive)
+if [[ $REBOOT -eq 1 || $AGGRESSIVE -eq 1 ]]; then
     echo -e "\nRemoving temporary files..."
-    rm -rf /tmp/* /var/tmp/*
+    rm -rf /tmp/* /var/tmp/* 2>/dev/null || true
 else
-    echo -e "\nSkipping temp files removal (not in aggressive mode or reboot not requested)"
+    echo -e "\nSkipping temp files (not aggressive & no reboot)."
 fi
 
-# Clean cache in home directories
+# 7. Clean user cache
 echo -e "\nCleaning user cache..."
 for userdir in /home/*; do
+    [[ -d "$userdir/.cache" ]] || continue
     user=$(basename "$userdir")
-    if [ -d "$userdir/.cache" ]; then
-        echo "Cleaning cache for user $user"
-        if [ $AGGRESSIVE -eq 1 ]; then
-            rm -rf "$userdir/.cache"  # Remove entire cache directory
-        else
-            rm -rf "$userdir/.cache/"*  # Just empty the cache
-        fi
+    echo "   → $user"
+    if [[ $AGGRESSIVE -eq 1 ]]; then
+        rm -rf "$userdir/.cache"
+    else
+        rm -rf "$userdir/.cache/"*
     fi
 done
 
-# Empty trash for all users if requested
-if [ $CLEAN_TRASH -eq 1 ]; then
+# 8. Empty trash (if requested)
+if [[ $CLEAN_TRASH -eq 1 ]]; then
     echo -e "\nEmptying trash for all users..."
+
+    # Home users
     for userdir in /home/*; do
+        trash="$userdir/.local/share/Trash"
+        [[ -d "$trash" ]] || continue
         user=$(basename "$userdir")
-        trash_dir="$userdir/.local/share/Trash"
-        if [ -d "$trash_dir" ]; then
-            echo "Emptying trash for user $user"
-            rm -rf "$trash_dir/files/"*
-            rm -rf "$trash_dir/info/"*
-        fi
+        echo "   → $user"
+        rm -rf "$trash/files/"* "$trash/info/"* 2>/dev/null || true
     done
-    # Clean root's trash if exists
-    if [ -d "/root/.local/share/Trash" ]; then
-        echo "Emptying trash for root"
-        rm -rf "/root/.local/share/Trash/files/"*
-        rm -rf "/root/.local/share/Trash/info/"*
+
+    # Root trash
+    root_trash="/root/.local/share/Trash"
+    if [[ -d "$root_trash" ]]; then
+        echo "   → root"
+        rm -rf "$root_trash/files/"* "$root_trash/info/"* 2>/dev/null || true
     fi
 fi
+
+# ──────────────── FINAL STEPS ────────────────
 
 echo -e "\nCleanup complete!"
 
-# Reboot if requested
-if [ $REBOOT -eq 1 ]; then
-    echo -e "\nRebooting system..."
+if [[ $REBOOT -eq 1 ]]; then
+    echo -e "\nRebooting in 2 seconds... (Ctrl+C to cancel)"
     sleep 2
     reboot
 fi
