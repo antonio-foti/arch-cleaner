@@ -2,7 +2,7 @@
 
 A bash script to perform routine maintenance and cleanup tasks on Arch Linux systems.
 
-![usage](./usage.gif)
+![usage](./arch-cleaner.gif)
 
 ## Features
 
