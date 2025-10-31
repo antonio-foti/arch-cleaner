@@ -32,6 +32,7 @@ safe_pacman_query() {
 
 # ──────────────── FLAGS & ARGS ────────────────
 
+BACKUP=0
 CLEAN_TRASH=0
 REBOOT=0
 AGGRESSIVE=0
@@ -43,14 +44,20 @@ if [[ $# -gt 0 ]]; then
             t) CLEAN_TRASH=1 ;;
             r) REBOOT=1 ;;
             a) AGGRESSIVE=1 ;;
+            b) BACKUP=1 ;;
             \?) echo "Invalid option: -$OPTARG" >&2; exit 1 ;;
         esac
     done
 else
-    # ──────────────── INTERACTIVE MENU ────────────────
-    echo "Interactive Cleanup Mode"
+# ──────────────── INTERACTIVE MENU ────────────────
+
+echo "Interactive Cleanup Mode"
     echo "Select options (press Enter to skip):"
 
+    read -rp "Backup with Timeshift? (y/N): " -n 1 -r
+    echo
+    [[ $REPLY =~ ^[Yy]$ ]] && BACKUP=1
+    
     read -rp "Empty Trash for all users? (y/N): " -n 1 -r
     echo
     [[ $REPLY =~ ^[Yy]$ ]] && CLEAN_TRASH=1
@@ -62,6 +69,51 @@ else
     read -rp "Aggressive mode? (y/N): " -n 1 -r
     echo
     [[ $REPLY =~ ^[Yy]$ ]] && AGGRESSIVE=1
+fi
+
+# ──────────────── BACKUP WITH TIMESHIFT ────────────────
+
+# Only proceed if user requested backup (BACKUP=1)
+if [[ $BACKUP -eq 1 ]]; then
+    echo -e "\n[+] Checking Timeshift installation..."
+
+    # Check if 'timeshift' command exists in PATH
+    if ! command -v timeshift &> /dev/null; then
+        # If not found, attempt to install it from official repos
+        echo "[!] Timeshift not found. Installing from official repositories..."
+        
+        # Use 'pacman -S --needed --noconfirm' to:
+        #   --needed : Skip if already installed
+        #   --noconfirm : Avoid interactive prompts (safe for scripts)
+        if ! pacman -S --needed --noconfirm timeshift; then
+            # If installation fails (e.g., no internet, repo issue), notify and disable backup
+            echo "[ERROR] Failed to install Timeshift. Skipping backup." >&2
+            BACKUP=0  # Prevent further backup attempts
+        else
+            echo "[✓] Timeshift installed successfully."
+        fi
+    fi
+
+    # Only try to create a snapshot if installation succeeded (BACKUP still 1)
+    if [[ $BACKUP -eq 1 ]]; then
+        echo -e "\n[+] Starting Timeshift backup in 2 seconds... (Ctrl+C to cancel)"
+        sleep 2
+
+        # Check if Timeshift has been configured (i.e., snapshot location set)
+        # 'timeshift --check' returns info; if no config, it mentions "No snapshots found"
+        if timeshift --check 2>/dev/null | grep -q "No snapshots found"; then
+            # Warn user: backup can't proceed without initial setup
+            echo "[i] No existing snapshot configuration detected."
+            echo "[!] Please run 'timeshift-setup' manually to configure storage first."
+            echo "[!] Skipping automatic backup."
+        else
+            # Proceed with creating a snapshot:
+            #   --create        : Take a new snapshot
+            #   --comments "..." : Add descriptive comment
+            #   --tags D        : Tag as "Daily" (useful for retention policies)
+            timeshift --create --comments "Arch-Cleaner automated backup" --tags D
+        fi
+    fi
 fi
 
 # ──────────────── MAIN CLEANUP LOGIC ────────────────

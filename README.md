@@ -6,6 +6,7 @@ A bash script to perform routine maintenance and cleanup tasks on Arch Linux sys
 
 ## Features
 
+- Backup system before any change
 - System updates (standard and aggressive options)
 - Removal of orphaned & unused packages (with configurable aggressiveness)
 - Pacman cache cleaning (configurable thoroughness)
@@ -43,6 +44,7 @@ sudo arch-cleaner [OPTIONS]
    
 ### Options:
 
+- -b Backup with timeshift
 - -t Empty trash for all users
 - -r Reboot after cleanup
 - -a Aggressive mode (force refresh databases, complete cache removal)
@@ -81,7 +83,7 @@ sudo arch-cleaner [OPTIONS]
 
 - Trash emptying (-t flag) - removes files from all user trash directories
 - System reboot (-r flag) - reboots after completion
-
+- Backup with timeshift (-b flag) - backup before any change
 
 ## Safety Notes
 
